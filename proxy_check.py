@@ -140,18 +140,37 @@ def install_and_import(packages):
 
 # !!!------------------ HELPER FUNCTIONS  -----------------!!! #
 
-def fetch_new_user_agents():
-    max_duration = 10  
+def fetch_new_user_agents(max_duration=10):
+    """
+    Fetches new user agents for Chrome that aren't present in the global USER_AGENTS.
+    
+    Args:
+    - max_duration (int): The maximum amount of time (in seconds) to run the loop for fetching user agents. Default is 10 seconds.
+    
+    Returns:
+    - list: A list of new unique user agents.
+    """
     start_time = time.time()
     new_user_agents = set()
+
     while (time.time() - start_time) < max_duration:
         ua = UserAgent(browsers=['chrome'], min_percentage=1.0, fallback='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36')
         new_agent = ua.random
         if new_agent not in USER_AGENTS and new_agent not in new_user_agents:
             new_user_agents.add(new_agent)
+
     return list(new_user_agents)
 
 def load_json_file(file_path):
+    """
+    Load a JSON file from a given path.
+    
+    Args:
+    - file_path (str): The path to the JSON file.
+    
+    Returns:
+    - dict: The content of the JSON file as a dictionary.
+    """
     if os.path.exists(file_path):
         with open(file_path, 'r') as file:
             content = file.read()
@@ -167,13 +186,29 @@ def load_json_file(file_path):
     return {}
 
 def save_json_file(data, file_path):
+    """
+    Save data as JSON to a given file path.
+    
+    Args:
+    - data (dict): The data to save as JSON.
+    - file_path (str): The path to the file where the JSON should be saved.
+    """
     with open(file_path, 'w') as file:
         json.dump(data, file)
 
-
 def is_fresh(proxy_data):
+    """
+    Checks if a proxy was tested recently (less than 2 days ago).
+    
+    Args:
+    - proxy_data (dict): The data related to a proxy, including its 'last_tested' field.
+    
+    Returns:
+    - bool: True if the proxy was tested less than 2 days ago, otherwise False.
+    """
     last_tested = datetime.datetime.strptime(proxy_data['last_tested'], '%Y-%m-%d')
-    return (datetime.datetime.now() - last_tested).days < 2 
+    return (datetime.datetime.now() - last_tested).days < 2
+
 
 
 ##---------- IP REPUTATION --------- ##
