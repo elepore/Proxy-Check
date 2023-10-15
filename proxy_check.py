@@ -523,33 +523,71 @@ def test_all_proxies(proxies, test_all_user_agents=False, concurrency=False):
 # !!!---------------------- SETUP  ------------------------!!! #
 
 def main(test_all_user_agents=False, concurrency=False):
-    global USER_AGENTS
+    """Main function to fetch, test, and store proxy information.
+
+    Args:
+        test_all_user_agents (bool): Flag to test all user agents. Default is False.
+        concurrency (bool): Flag to indicate if concurrency is used. Default is False.
+
+    Returns:
+        list: List of successful proxy headers.
+    """
     
-    # Load data
+    # Load previously stored proxies and blacklisted proxies
     stored_proxies = load_json_file(PROXY_STORAGE_FILE)
     blacklist = set(load_json_file(PROXY_BLACKLIST_FILE))
-    all_proxies = set()
+    
+    # Fetch and deduplicate new user agents
+    update_user_agents()
 
-    # Update user agents
+    # Fetch proxies from various sources
+    all_proxies = print("however you get proxies")
+    
+    # Filter out blacklisted or recently tested proxies
+    proxies_to_test = filter_proxies(all_proxies, blacklist, stored_proxies)
+
+    # Test the filtered proxies
+    successful_proxy_headers = test_all_proxies(proxies_to_test, test_all_user_agents, concurrency)
+
+    # Update stored proxies based on test results
+    process_test_results(proxies_to_test, successful_proxy_headers, stored_proxies, blacklist)
+
+    # Save the updated data
+    save_json_file(stored_proxies, PROXY_STORAGE_FILE)
+    save_json_file(list(blacklist), PROXY_BLACKLIST_FILE)
+    
+    return successful_proxy_headers
+
+def update_user_agents():
+    """Fetches new user agents and updates the global USER_AGENTS list."""
+    global USER_AGENTS
     new_user_agents = fetch_new_user_agents()
     USER_AGENTS.extend(new_user_agents)
     USER_AGENTS = list(set(USER_AGENTS))
 
-    # Fetch proxies
-    # However you get your proxies 
+def filter_proxies(all_proxies, blacklist, stored_proxies):
+    """Filter out proxies based on blacklist and freshness.
 
-    # Filter proxies
-    proxies_to_test = [proxy for proxy in all_proxies if proxy not in blacklist and (proxy not in stored_proxies or not is_fresh(stored_proxies[proxy]))]
+    Args:
+        all_proxies (set): Set of all fetched proxies.
+        blacklist (set): Set of blacklisted proxies.
+        stored_proxies (dict): Dictionary of previously stored proxies.
 
-    # Test proxies
-    successful_proxy_headers, error_messages  = test_all_proxies(proxies_to_test, test_all_user_agents, concurrency)
-    
-    # Print error messages
-    for proxy, error_message in error_messages:
-        print(f"Proxy: {proxy}, Error: {error_message}")
+    Returns:
+        list: List of proxies to be tested.
+    """
+    return [proxy for proxy in all_proxies if proxy not in blacklist and (proxy not in stored_proxies or not is_fresh(stored_proxies[proxy]))]
 
-    # Process the successful proxies and store data
-    successful_proxies = {item[0]: item[1] for item in successful_proxy_headers}
+def process_test_results(proxies_to_test, successful_proxy_headers, stored_proxies, blacklist):
+    """Process test results, update stored proxies, and manage the blacklist.
+
+    Args:
+        proxies_to_test (list): List of proxies that were tested.
+        successful_proxy_headers (list): List of headers from successful proxies.
+        stored_proxies (dict): Dictionary of previously stored proxies.
+        blacklist (set): Set of blacklisted proxies.
+    """
+    successful_proxies = {item[0]: item[0] for item in successful_proxy_headers}
     
     for proxy in proxies_to_test:
         if proxy in successful_proxies:
@@ -570,16 +608,11 @@ def main(test_all_user_agents=False, concurrency=False):
             if failure_count >= 30:
                 blacklist.add(proxy)
 
-    # Save updated data
-    save_json_file(stored_proxies, PROXY_STORAGE_FILE)
-    save_json_file(list(blacklist), PROXY_BLACKLIST_FILE)
-    
-    return successful_proxy_headers
-
-# Install required packages
+# Installing required packages
 install_and_import(packages)
-# Run the main function
-result = main(test_all_user_agents=False, concurrency=True)
+
+# Running the main function
+result = main(test_all_user_agents=True, concurrency=True)
 
 
 # !!!------------------- END OF SETUP ---------------------!!! #
