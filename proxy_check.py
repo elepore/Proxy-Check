@@ -597,16 +597,21 @@ def process_test_results(proxies_to_test, successful_proxy_headers, stored_proxi
                 'failure_count': 0  # Reset failure count on success
             }
         else:
-            # Increment failure count on failure, or initialize to 1 if not previously stored
-            failure_count = stored_proxies.get(proxy, {}).get('failure_count', 0) + 1
-            stored_proxies[proxy] = {
-                'user_agents': [],
-                'last_tested': datetime.datetime.now().strftime('%Y-%m-%d'),
-                'failure_count': failure_count
-            }
-            # Blacklist proxies that have failed multiple times
-            if failure_count >= 30:
-                blacklist.add(proxy)
+            # Check if the proxy is already in stored_proxies
+            if proxy in stored_proxies:
+                # Increment the failure count
+                stored_proxies[proxy]['failure_count'] += 1
+                stored_proxies[proxy]['last_tested'] = datetime.datetime.now().strftime('%Y-%m-%d')
+                # Check if it should be blacklisted
+                if stored_proxies[proxy]['failure_count'] >= 30:
+                    blacklist.add(proxy)
+            else:
+                # Add the proxy to stored_proxies with failure_count = 1
+                stored_proxies[proxy] = {
+                    'user_agents': [],
+                    'last_tested': datetime.datetime.now().strftime('%Y-%m-%d'),
+                    'failure_count': 1
+                }
 
 # Installing required packages
 install_and_import(packages)
